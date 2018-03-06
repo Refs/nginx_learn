@@ -98,9 +98,9 @@ server {
         index  index.html index.htm;
     }
     
-    #location ~ /test_proxy.html$ {
-    #    proxy_pass http://127.0.0.1:8080;
-    #}
+    location ~ /test_proxy.html$ {
+        proxy_pass http://127.0.0.1:8080;
+    }
 
     #error_page  404              /404.html;
 
@@ -189,6 +189,90 @@ server {
 
 ```
 
+###  其它配置语法
+
+> 头信息
+ 
+ ![](./images/proxy_header.png)
+
+ 有时候我们需要将nginx作为代理服务器，但后端的server时需要读取一些头信息，而这些头信息时不准确的； 也就是在nginx做为访问控制这一层里面。remote_dir(没听清)这个信息就在后端的服务器里面，因为走了代理，所以后端就没办法读取对应的消息，此时就需要用到proxy_set_header 也就是发给后端的服务器里面 我们增加一个对应的头 将对应的信息 用新的这个头的方式 携带到后端 让后端能够读取到；这个时头信息的一个配置
+
+ proxy_hide_header : 隐藏一些头不够后端访问到
+
+
+> 超时：nginx作为代理到后端服务器中间的一个超时，这个超时 是一个tcp链接超时,当建立完链接之后，就有另外两个超时proxy_read_timeout、proxy_send_timeout
+
+![](./images/timeout.png)
+
+proxy_read_timeout : 已经建立好的链接的情况下面，在nginx作为代理和后端server之间让它会等待多长时间
+
+proxy_send_timeout： 服务端请求完毕 发送给客户端的时间
+
+
+### 补充配置
+
+```bash
+# fx_proxy.conf中
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+    
+    location ~ /test_proxy.html$ {
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+```
+
 ## 负载均衡调度器SLB
 
 ## 动态缓存
+
+
+```bash
+# 利用nginx 查看本机因为nginx而启用的端口
+
+netstat -luntp|grep nginx
+
+```
