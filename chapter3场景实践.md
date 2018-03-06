@@ -213,7 +213,6 @@ proxy_send_timeout： 服务端请求完毕 发送给客户端的时间
 
 ```bash
 # fx_proxy.conf中
-
 server {
     listen       80;
     server_name  localhost jeson.t.imooc.io;
@@ -221,13 +220,87 @@ server {
     #charset koi8-r;
     access_log  /var/log/nginx/test_proxy.access.log  main;
 
-    location / {
-        root   /usr/share/nginx/html;
-        index  index.html index.htm;
-    }
     
-    location ~ /test_proxy.html$ {
+    location / {
+        #1 必须要使用到的跳转配置
         proxy_pass http://127.0.0.1:8080;
+        include proxy_params;
+    }
+
+    #error_page  404               /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+```
+
+```bash
+# proxy_params中
+
+# 2.除非时后端返回301 且我们要进行一些改写 否则都将其配置为默认
+proxy_redirect default;
+
+# 3. 将nginx的代理向向后端的server发送信息的时候，所添加的头信息
+proxy_set_header Host $http_host;
+# 3.1 后端的server通过代理之后其实没法获取真实的用户ip的，往往要做用户访问限制，或实际上有常常需要获取用户的ip信息 ，这样我们就需要在前端将真实的用户ip信息 带到后端去 
+proxy_set_header X-Real-IP $remote_addr;
+
+# 4 链接超时的配置
+proxy_connect_timeout 30;
+proxy_send_timeout 60;
+proxy_read_timeout 60;
+
+# 5 缓冲区的一系列设置
+proxy_buffer_size 32k;
+proxy_buffering on;
+proxy_buffers 4 128k;
+proxy_busy_buffers_size 256k;
+proxy_max_temp_file_size 256k;
+
+```
+
+![](./images/temp_file.png)
+
+```bash
+# realserver.conf中
+server {
+    listen       8080;
+    server_name  localhost jeson.t.imooc.io;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/server.access.log  main;
+
+    location / {
+        root   /opt/app/code2;
+        index  index.html index.htm;
     }
 
     #error_page  404              /404.html;
