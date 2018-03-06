@@ -206,9 +206,96 @@ systemctl restart nginx.service
 # 柔和的重启
 systemctl reload nginx.service
 
+# 查看日志 因为我们要看那些最新加的东西，所以用到tail -f
+# tail -f 可以实时的得到新追加到文件中的信息，常用来跟踪日志文件tail -f 
+# tail -n 200 打印日志文件的最后200行
+
+ tail -f /var/log/nginx/error.log
+
+
+ # -t 查看nginx配置文件正确与否
+ nginx -t
+ # -c 指定配置文件的路径 进行前期配置语法的检查；
+ nginx -t -c /etc/nginx/nginx.conf
+ # 重新加载指定配置文件
+ nginx -s reload -c /etc/nginx/nginx.conf
+
 ```
 
-## http请求
+## nginx的基础知识
 
+### http请求
+
+nginx作为web server与http代理 处理的就是http的请求，http请求时建立在tcp基础之上的；
+
+1. 每个http的请求主要包含了两个： 一个客户端发起request请求给服务端，一个是服务端给客户端一个response相应； 
+2. 每一次的request与response 都会发送对应的http报文； request报文包括：请求行、请求头部、请求数据； response报文包括：状态行、消息报头、响应正文
+
+```bash
+# 利用curl进行测试
+# curl 可以理解为我们的浏览器 不过在linux中 其是一个命令行 不能完成浏览器的渲染，所以我们不能看到内容，看到的只有返回给我们的html代码
+
+# 返回的只有html页面代码，并不能看到返回与请求信息
+curl http://www.baidu.com
+
+# 加上-v参数，查看每次请求与返回的具体内容
+# /dev/null 表示空设备，这里就是把日志记录到空设备里，就是不记录日志。
+curl -v http://www.baidu.com > /dev/null
+
+
+```
+
+### Nginx的日志类型
+
+nginx的日志主要包括error.log 与access_log
+
+#### error.log日志
+
+主要记录nginx处理http请求的错误的状态，以及nginx本身服务运行的错误的状态，这回按照不同的级别记录到error.log里面
+
+#### access_log日志
+
+主要记录nginx的每一次http请求的访问状态，主要用来分析每次请求与客户之间的交互，以及对行为的 一些分析，企业实际使用会比较多
+
+nginx主要是依赖log_format配置来实现，nginx log里面记录了很多的信息，每一个信息都可以理解为对应nginx里面的变量，而log_format就是将这些变量组织到一起来，并记录到access_log里面去。配置语法如下：
+
+```bash
+
+# log_format的配置语法
+# log_format 配置关键字
+# name 格式的名字 可以自定义 类似变量名
+Syntax: log_format name [escape=default|json] string ...;
+# 默认的配置
+Default: log_format combined "....";
+# 指明对于 log_format只能配置在http这个大的模块下面，对于log_format配置的位置是有约束的，
+Context: http
+
+``` 
+```bash
+# /etc/nginx/niginx/conf中
+
+log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+    # main 指的就是上述log_format 语法中的 配置的格式名； 其与上面的`log_format main`是相互对应的，表示将会以'main'的格式要求 记录到access_log中去；
+    access_log  /var/log/nginx/access.log  main;
+
+
+```
+### Nginx变量
+
+####. HTTP请求变量 - arg_PARAMETER、http_HEADER、sent_http_HEADER
+
+1. http_HEADER 是request请求里面的header  , HEADER 指的是请求头中的项 如：User-Agent Host 等，格式要变为`$http_user_agent  $http_host` 即大写变小写，横线变下划线；
+2. sent_http_HEADER 是服务端返回给客户端的response的header
+
+
+####. 内置变量 - Nginx内置的
+
+> 文档地址 ： http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log
+> nginx所有变量的描述 http://nginx.org/en/docs/http/ngx_http_core_module.html#var_status
+
+
+####. 自定义变量 - 自己定义
 
 

@@ -13,7 +13,7 @@
 
 ```bash
 # 查看配置规则项
-iptables -L
+iptables -L 
 iptables -t nat -L 
 # 关闭iptables
 iptables -F
