@@ -308,4 +308,89 @@ $body_bytes_sent 从服务端响应给客户端 body信息里面的大小
 
 ####. 自定义变量 - 自己定义
 
+### Nginx模块讲解
+
+#### Nginx 官方模块
+
+```bash
+# 查看编译进去的模块
+nginx -V 
+# 打印出来的 以--with开头的模块
+```
+
+##### http_stub_status_module模块
+
+主要是用来展示nginx当前处理链接的一个状态，用于监控nginx当前链接的信息
+
+```bash 
+# http_stub_status_module模块的配置语法
+
+# 打开stub_status功能
+Syntax: stub_status;
+# 默认是没有配置
+Default: -
+# 其需要基于在server、location这一级配置下面来进行配置
+Context:server,location
+
+``` 
+```bash
+# 在default.conf里面进行配置
+server{
+    ...
+    location /mystatus {
+        stub_status;
+    }
+    ...
+}
+
+```
+
+使用我们的浏览器请求 http://47.95.114.174/mystatus 就会在浏览器页面上打印如下：
+
+```bash
+Active connections: 1 
+# 第一个数字 表示nginx处理的握手的次数
+# 第二个数组 表示nginx处理的链接数目 默认与握手字数应相等 表示没有丢包
+# 第三个数字 表示总的请求数
+server accepts handled requests
+ 8 8 7 
+ # 表示当前的状态
+ # waiting 指的是当nginx开启keeplive长链接的情况，客户端与服务端正在空闲的等待，即没有读也没有写 但建立了链接的这么一个数量；
+Reading: 0 Writing: 1 Waiting: 0 
+```
+
+##### http_random_index_module模块
+
+用来在目录里面，随机的选择一个文件作为默认的随机主页； 这个模块我们平时会很少用到，但是我们在某些场景中：若我们有多个不同的主页，放在一个目录当中随机的展示给我们的用户：
+
+* 配置语法
+
+```bash
+Sytnax: random_index on|off;
+# Default 默认  random_index 是关闭off的
+Default: random_index off;
+# 上下文限制在location这一级上面
+Context: location
+
+```
+
+* 配置实例
+
+```bash
+server {
+    ...
+    location / {
+        # 自定义的存放几个随机主页的目录 
+        root /opt/app/code;
+        random_index on;
+        #index index.html index.htm
+    }
+    ...
+}
+
+```
+
+
+#### Nginx 第三方模块
+
 
