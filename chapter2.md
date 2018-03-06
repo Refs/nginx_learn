@@ -295,6 +295,16 @@ log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
 > 文档地址 ： http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log
 > nginx所有变量的描述 http://nginx.org/en/docs/http/ngx_http_core_module.html#var_status
 
+$remote_addr 客户端的地址
+$remote_user http用户端请求nginx认证的用户名，默认没有开启认证模块的话，该变量是不会被记录的’
+$time_local nginx的系统时间
+"$request"  request请求头的行
+
+$status response返回的状态
+$body_bytes_sent 从服务端响应给客户端 body信息里面的大小
+"$http_referer" 重要的 信息， 在防盗链与对用户进行行为分析的时候会用到，是一个http标准协议会携带的信息； referer表示上一级页面的url地址是那个，
+"$http_user_agent" 表示客户端用什么来访问，保存客户端的内容，若使用ie访问，则打印ie的信息；
+"$http_x_forwarded_for" 会记录每一级用户，通过http请求 所携带的http信息
 
 ####. 自定义变量 - 自己定义
 
