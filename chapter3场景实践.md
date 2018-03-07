@@ -456,11 +456,11 @@ server {
 # /etc/nginx/conf.d/upstream_test.conf 中
 
     # imooc是我们的名字是自定义的
-    upstream imooc {
+    upstream dh_server {
         # 三个服务节点分别是8001、8002、8003节点
-        server 116.62.103.228:8001;
-        server 116.62.103.228:8002;
-        server 116.62.103.228:8003;
+        server http://47.95.114.174:8001;
+        server http://47.95.114.174:8002;
+        server http://47.95.114.174:8003;
     }
 
 server {
@@ -473,8 +473,8 @@ server {
     
     location / {
         # 在location这一级 将所有的请求都 proxy_pass到imooc也就是我们自定义的upstream组的name
-        proxy_pass http://imooc;
-        include proxy_params;
+        proxy_pass http://dh_server;
+        include /etc/nginx/conf.d/proxy_params;
     }
 
    
@@ -487,6 +487,10 @@ server {
 
 ```
 
+> 在浏览器页面不断刷新的时候，我们可以很好的看出来 负载均衡默认是轮询的，多次请求会在server1、server2、server3之间不停的轮询
+
+3. 测试： 假设有一个服务器宕机了，不能服务了，那么剩下的两个节点是否还可以正常的去服务？在这里因为三个服务节点是利用后台一个nginx进程来开启的，所以我们不太好直接将进程关掉； 现在我们想将其中一个关掉
+
 
 ## 动态缓存
 
@@ -497,5 +501,9 @@ server {
 netstat -luntp|grep nginx
 
 ```
+
+> 网络模型 
+
+http://www.toxingwang.com/linux-unix/linux-basic/1712.html
 
 沟通就会有一些好的事情发生；
