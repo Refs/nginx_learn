@@ -380,7 +380,7 @@ Context: http
 
 ### 实现负载均衡的实例
 
-我们准备了两台服务器，一台服务器单独做后端服务 提供真实的web服务，另外一台单独做负载均衡；
+1. 我们准备了两台服务器，一台服务器单独做后端服务 提供真实的web服务，另外一台单独做负载均衡；
 
 ![](./images/aliyun_secure.png)
 
@@ -428,6 +428,61 @@ server {
     }
 
 }
+
+# server3.conf
+server {
+    listen       8003;
+    server_name  localhost;
+
+    location / {
+        root   /opt/app/code3;
+        index  index.html index.htm;
+    }
+
+    error_page   500 502 503 504 404  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+}
+
+
+
+```
+
+2. 我们会有三个服务对应不同的三个端口，接下来我们就要用负载均衡来配置不同的负载均衡的效果，我们用一个地址来代理负载到不同的服务器上面，我们就需要配置我们的前端的负载均衡服务器了；
+
+```bash
+# /etc/nginx/conf.d/upstream_test.conf 中
+    upstream imooc {
+        server 116.62.103.228:8001;
+        server 116.62.103.228:8002;
+        server 116.62.103.228:8003;
+    }
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+    resolver  8.8.8.8;
+    
+    location / {
+        proxy_pass http://imooc;
+        include proxy_params;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
 
 ```
 
