@@ -378,6 +378,59 @@ Context: http
 
 ```
 
+### 实现负载均衡的实例
+
+我们准备了两台服务器，一台服务器单独做后端服务 提供真实的web服务，另外一台单独做负载均衡；
+
+![](./images/aliyun_secure.png)
+
+```bash
+# 在opt/app/下面新建三个目录code1、code2、code3;在三个目录中分别存放了 三个不同的展示效果页面index.html
+
+# 在 /etc/nginx/conf.d/新建三个server对应的：server1.conf server2.conf server3.conf  分别用来监听不同的端口  以表示建立起了单个端口不同的服务；server1--8001端口 server2---8002端口 server3---8003端口；对应的程序目录分别在code1 code2 code3上面
+
+# 在浏览器或curl中使用公网ip加端口的方式进行访问，如自己的http://47.95.114.174:8001; 此时会发现页面是访问不到的，但利用netstat -luntp可以看到nginx在正常的监听； 归其原因是因为我们的aliyun配置了 防火墙的规则；以至于 我们的服务器无法收到客户端发送过来的请求 ；解决方式是修改阿里云安全组的规则 或iptables的规则；
+
+# server1.conf
+server {
+    listen       8001;
+    server_name  localhost;
+
+    access_log  /var/log/nginx/log/server1.access.log  main;
+
+    location / {
+        root   /opt/app/code1;
+        index  index.html index.htm;
+    }
+
+    error_page   500 502 503 504 404  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
+# server2.conf
+server {
+    listen       8002;
+    server_name  localhost;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/log/server2.access.log  main;
+
+    location / {
+        root   /opt/app/code2;
+        index  index.html index.htm;
+    }
+
+    error_page   500 502 503 504 404  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+}
+
+```
+
 
 ## 动态缓存
 
@@ -388,3 +441,5 @@ Context: http
 netstat -luntp|grep nginx
 
 ```
+
+沟通就会有一些好的事情发生；
