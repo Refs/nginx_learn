@@ -801,9 +801,28 @@ server {
     #}
 }
 
+```
 
+### 补充 如何清理指定的缓存
+
+* 利用rm -rf 清理缓存目录下的所有内容； 缺点是会将所有的缓存 都给清理掉
+
+* 利用 第三方的扩展模块ngx_cache_purge purge(净化)
+  需在学习nginx第三方模块的编译 安装之后使用
+
+### 补充 如何让部分页面不缓存？
+
+在某些场景里面 如登陆的页面 或者用户不能缓存的页面 那么我们是否能够让部分页面不缓存？ 使用proxy_no_cache 来配置 
+
+```bash
+# 用来配置那一部分url 是不用来做缓存的；一=一般是交互页面的url
+Syntax:	proxy_no_cache string ...;
+Default:	—
+Context:	http, server, location
 
 ```
+
+
 
 
 
@@ -818,6 +837,8 @@ server {
 netstat -luntp|grep nginx
 
 ```
+
+> nginx大神博客 http://blog.sina.com.cn/openresty
 
 > 网络模型 
 
