@@ -657,6 +657,160 @@ server {
 
 ## 动态缓存
 
+缓存是为了减少后端的压力，让所有的请求都能集中在前端，在前端就能取得数据，
+
+### 缓存的类型
+
+![](./images/缓存类型.png)
+
+1. 服务端缓存 若缓存出现在服务端则称为服务端缓存，最常见的就是用到一个redis存储一些key value型的数据，我们会将所有的数据放到一个单元里面，进行持久化或非持久化的存储
+
+2. 代理缓存 若缓存集中在代理或中间件上面我们称之为代理缓存，是从服务端获取到的 然后在本地存储一份 并直接返回给客户端去使用
+
+3. 客户端缓存 其实就在浏览器上面 数据都是从后台过来的，只不过给前台一份 这样用户就能自己访问自己
+
+### nginx 作为代理缓存的流程
+
+![](./images/代理缓存.png)
+
+1. 首先客户端去请求nginx 如果第一次请求的时候,如果nginx本地没有缓存； 
+2. 其会向服务器发送请求对应的数据，
+3. 然后服务器返回对应的数据，nginx本地进行缓存
+4. 然后返回给客户； 上述是在没有缓存的情况下
+
+5. 当用户再次发起 同一种请求的时候，请求数据a ; 而nginx 本地已经有了a数据的缓存
+6. 所以nginx就直接将数据返回给客户端，而无需再一次想服务器进行请求；
+
+###  nginx代理缓存配置语法
+
+
+1. proxy_cache_path 定义路径 目录空间大小 用来存放缓存文件
+
+```bash
+Syntax:	proxy_cache_path path [levels=levels] [use_temp_path=on|off] keys_zone=name:size [inactive=time] [max_size=size] [manager_files=number] [manager_sleep=time] [manager_threshold=time] [loader_files=number] [loader_sleep=time] [loader_threshold=time] [purger=on|off] [purger_files=number] [purger_sleep=time] [purger_threshold=time];
+Default:	—
+Context:	http
+
+```
+2. proxy_cache配置语法
+
+```bash
+Syntax:	proxy_cache zone | off;
+Default:	
+proxy_cache off;
+Context:	http, server, location
+
+```
+
+3. proxy_cache_valid缓存周期过期 
+ 
+ ```bash
+    # code 表示返回状态码
+ Syntax:	proxy_cache_valid [code ...] time;
+ Default:	—
+ Context:	http, server, location
+ 
+ ```
+
+ 4. proxy_cache_key 缓存的维度
+
+ ```bash
+ Syntax:	proxy_cache_key string;
+ # $schema 协议 + servername + 请求参数
+ # 将三者作为一个单独的key 作为一个纬度进行缓存
+ Default: proxy_cache_key $scheme$proxy_host$request_uri;
+ Context:	http, server, location
+ 
+ ```
+
+ ### nginx作为缓存服务的配置场景实例
+
+```bash
+    upstream imooc {
+        server 116.62.103.228:8001;
+        server 116.62.103.228:8002;
+        server 116.62.103.228:8003;
+    }
+    # proxy_cache_path是最先需要配置的
+    # /opt/app/cache 存放缓存文件的目录
+    # levels 目录分级 一半建议就是1:2
+    # keys_zone   我们开辟的zone空间的名字 在后面proxy_cache 配置项中的zone 就是这个空间名  10m 就开辟空间的大小10兆
+    # max_size 目录控制最大的多大
+    # inactive=60 inactive 表示不活跃的，即若在60分钟之内该缓存文件 未被请求过，则该缓存文件，就会被清理掉；
+    # use_temp_path 用来存放临时文件的，一半建议将其关闭；若开启需要重新配置一个目录，和path配置的目录并行 会产生一定的问题；
+
+    proxy_cache_path /opt/app/cache levels=1:2 keys_zone=imooc_cache:10m max_size=10g inactive=60m use_temp_path=off;
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+
+    
+    location / {
+        # imooc_cache 前面proxy_cache_path中定义的zone 表示我们已经开启了缓存
+        proxy_cache imooc_cache;
+        # proxy_cache off;
+        proxy_pass http://imooc;
+
+        # 
+        proxy_cache_valid 200 304 12h;
+        proxy_cache_valid any 10m;
+        # 
+        proxy_cache_key $host$uri$is_args$args;
+        # 
+        add_header  Nginx-Cache "$upstream_cache_status";  
+        
+        # 应该在负载均衡中讲到：如果后端的其中的一台服务器，出现了、500、502、503、504或者不正常的头返回、出错的时候 我们就让其跳过这一台 去访问下一台；避免其中一台服务器宕机 会对前端服务产生影响；
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        include proxy_params;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+
+
+```
+
+
+
+
+
+
+
 
 ```bash
 # 利用nginx 查看本机因为nginx而启用的端口
@@ -679,3 +833,11 @@ http://www.toxingwang.com/linux-unix/linux-basic/1712.html
 
 
 反向代理 集中分布 负载均衡 动静分离
+
+> mac 切换同一个程序的不同窗口
+
+command + `
+
+> 新建当前程序的窗口
+
+command + n
