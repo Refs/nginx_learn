@@ -348,7 +348,7 @@ server{
 使用我们的浏览器请求 http://47.95.114.174/mystatus 就会在浏览器页面上打印如下：
 
 ```bash
-Active connections: 1 
+Active connections: 1  
 # 第一个数字 表示nginx处理的握手的次数
 # 第二个数组 表示nginx处理的链接数目 默认与握手字数应相等 表示没有丢包
 # 第三个数字 表示总的请求数

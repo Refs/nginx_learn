@@ -588,6 +588,69 @@ This directive appeared in verion 1.7.2
 
 2. 实例演示
 
+```bash
+# 在opt/app/的三个目录code1、code2、code3;下分别新增3个html:url1.html url2.html url3.html  在三个目录中分别存放了 四个html文件
+
+    upstream imooc {
+        # $request_url 就是我们请求的参数 非域名的部分 http://47.95.114.174/url1.html 中的url1.html
+        # 是基于$request_url这个自定义变量 来做hash 当每次请求的都是同一个 request_url的时候，其就会定位到同一台服务器上面
+        #  再实际的场景里面我们的 $request_url会有很大一长串  http://47.95.114.174/url1.html?user=dfasdfasd&dfas=fasdfasdfa 会有很多的相关的信息，带到我们的服务器后台去； 
+        # 我们想针对url中的某一个值来做hash也是可以的，我们只需要在服务端 加上一行判断语句，将对应的值用正则表达式提取出来，然后将自定义的变量进行hash
+        hash $request_uri;
+        server 116.62.103.228:8001;
+        server 116.62.103.228:8002;
+        server 116.62.103.228:8003;
+    }
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    #charset koi8-r;
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+    resolver  8.8.8.8;
+    
+    location / {
+        proxy_pass http://imooc;
+        include proxy_params;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+
+```
+
 
 
 
@@ -612,6 +675,7 @@ http://www.toxingwang.com/linux-unix/linux-basic/1712.html
 
 1. 静态资源托管 nginx
 2. 交互程序 node java php
+3. 上传与下载
 
 
 反向代理 集中分布 负载均衡 动静分离
