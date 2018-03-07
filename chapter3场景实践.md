@@ -454,7 +454,10 @@ server {
 
 ```bash
 # /etc/nginx/conf.d/upstream_test.conf 中
+
+    # imooc是我们的名字是自定义的
     upstream imooc {
+        # 三个服务节点分别是8001、8002、8003节点
         server 116.62.103.228:8001;
         server 116.62.103.228:8002;
         server 116.62.103.228:8003;
@@ -464,19 +467,17 @@ server {
     listen       80;
     server_name  localhost jeson.t.imooc.io;
 
-    #charset koi8-r;
     access_log  /var/log/nginx/test_proxy.access.log  main;
+
     resolver  8.8.8.8;
     
     location / {
+        # 在location这一级 将所有的请求都 proxy_pass到imooc也就是我们自定义的upstream组的name
         proxy_pass http://imooc;
         include proxy_params;
     }
 
-    #error_page  404              /404.html;
-
-    # redirect server error pages to the static page /50x.html
-    #
+   
     error_page   500 502 503 504  /50x.html;
     location = /50x.html {
         root   /usr/share/nginx/html;
