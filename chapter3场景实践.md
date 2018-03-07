@@ -490,6 +490,106 @@ server {
 > 在浏览器页面不断刷新的时候，我们可以很好的看出来 负载均衡默认是轮询的，多次请求会在server1、server2、server3之间不停的轮询
 
 3. 测试： 假设有一个服务器宕机了，不能服务了，那么剩下的两个节点是否还可以正常的去服务？在这里因为三个服务节点是利用后台一个nginx进程来开启的，所以我们不太好直接将进程关掉； 现在我们想将其中一个关掉
+此时我们要去使用iptables的规则去实现这一点，将所有请求8002的端口都给drop掉，即不对外提供8002端口的服务
+
+```bash
+iptables -I INPUT -p tcp --dport 8002 -j DROP
+
+# 我们在刷新页面的时候 就会不断的在server1与server3之间轮询，而server2就没有再展示，此时说明我们的负载均衡检测到server2是无法请求到的，就将server2这个服务节点直接下线掉了；
+```
+
+> iptables 日志 http://www.zsythink.net/archives/category/%E8%BF%90%E7%BB%B4%E7%9B%B8%E5%85%B3/%E9%98%B2%E7%81%AB%E5%A2%99/
+
+### upstream其它的一些配置项
+
+```bash
+# backend 自定义的这一组虚拟服务的名字
+upstream backend {
+    # server 可以是ip的写法，也可以是域名的写法
+    # 每一个server的后面 我们可以添加一些 小的配置参数，
+    # weight 表示该节点的权重，对与轮询的这种方式而言，权重越大 轮询时分配到的几率就会越高；
+    server backend1.example.com weight=5;
+    server backend1.example.com:8080;
+    server unix:/tmp/backend3;
+    
+    # backup 表示这是一个备份节点
+    server backup1.example.com:8080 backup;
+    server backup2.example.com:8080 backup;
+}
+
+```
+
+![](./images/upstream_params.png)
+
+* down 表示当前的节点不参与到负载均衡里面，也就是再里面没用 但是我们写在里面，不对外提供服务
+* backup 也是表示不对外提供服务，但是他是在有其它成员存活的情况下，但同组的其它节点无法提供服务的时候，这个时候nackup就会被利用起来
+* max_fails 代理服务器会对后端的服务做检查，若发现请求失败 或状态失败，就会将该节点标记成失败； 这样就会再一次去重试这一个服务器 就是再一次去检查； 当请求失败的次数用完之后，就会timeout  就是会休息一会；
+* fail_timeout 服务器暂停的时间 默认是10s
+* max_conns 限制每个server的最大链接数目，若发现某些后端的节点不均匀的情况下，如有的节点是四核的服务器，有的节点是24核的服务器，但是这些不均匀的节点 有被加在我们的同一组server里面；此时我们就可以去限制最大连接数，当请求数满了之后 ，就不会去发请求了；
+
+### upstream的调度算法
+
+![](./images/upstream_weight.png)
+
+* 加权轮循： 默认的weight值为1
+
+#### ip_hash
+
+加权轮询与轮询都是基于请求来进行分配的，如果我们不想依赖请求，而是项保证对于一些cookoes session等信息会一直，也就是每一次用户的请求，如果基于请求来的 就会到不同的服务器上面，导致用户登陆的cookies信息验证会出现一些问题（掉线），这样的话 我们就需要另外一种方式--不基于请求的方式 来进行节点的分配；
+具体实现，早先出现一种利用ip_hash的方式，ip_hash会基于用户的ip来计算用户的hash值，然后将每一个固定ip过来的请求 都会分配到同一个服务节点上去；这样就解决了 多次请求 会到达不同的服务器上面 这样一个问题， 所以ip_hash就出现了；
+
+```bash
+# /etc/nginx/conf.d/upstream_test.conf 中
+
+    upstream dh_server {
+        # 将ip_hash放到server节点上面；
+        ip_hash;
+        server http://47.95.114.174:8001;
+        server http://47.95.114.174:8002;
+        server http://47.95.114.174:8003;
+    }
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+
+    resolver  8.8.8.8;
+    
+    location / {
+        proxy_pass http://dh_server;
+        include /etc/nginx/conf.d/proxy_params;
+    }
+
+   
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
+
+```
+
+> 此时我们打开浏览器 去访问地址 会发现多次请求ip地址，请求始终会被分配到同一个server节点，这是ip_hash的策略，其会基于我们的$remote_addr来做hash, 若是同一个remote_addr过来其就会定位到同一台服务器上面去； 但是这种方式是也存在缺陷， remote_addr 如果是走代理这种方式的话，即前端再走一层remote_addr 则获取到的就不再是真实的remote_addr ; 这样我们就无法基于用户真实的ip来做对应的轮询了,这样用户请求的话始终会定位到一台机器上面去；； 更新方式是 走基于url_hash
+
+#### url_hash 与 hash 关键数值
+
+1. 配置语法
+
+```bash
+Syntax: hash key [consisitent]
+Default: ---
+Context: upstream
+This directive appeared in verion 1.7.2
+
+```
+
+2. 实例演示
+
+
+
 
 
 ## 动态缓存
@@ -507,3 +607,11 @@ netstat -luntp|grep nginx
 http://www.toxingwang.com/linux-unix/linux-basic/1712.html
 
 沟通就会有一些好的事情发生；
+
+> 后台要做的事情----所谓动静分离
+
+1. 静态资源托管 nginx
+2. 交互程序 node java php
+
+
+反向代理 集中分布 负载均衡 动静分离
