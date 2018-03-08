@@ -23,7 +23,58 @@ tomcat主要负责jsp的所有的动态的请求，另外jpg、png等静态资�
 
 
 > linux 安装tomcat https://www.cnblogs.com/wangcMove/p/7606051.html
+
+## jdk 的安装
+
 > linux 安装jdk https://www.cnblogs.com/Dylansuns/p/6974272.html
+
+由于各Linux开发厂商的不同,因此不同开发厂商的Linux版本操作细节也不一样,今天就来说一下CentOS下JDK的安装:
+
+1. 在/usr/目录下创建java目录
+
+```bash
+[root@localhost ~]# mkdir/usr/java
+[root@localhost ~]# cd /usr/java
+```
+
+2. 下载jdk,然后解压
+
+```bash
+[root@localhost java]# curl -O http://download.Oracle.com/otn-pub/java/jdk/7u79-b15/jdk-7u79-linux-x64.tar.gz 
+[root@localhost java]# tar -zxvf jdk-7u79-linux-x64.tar.gz
+```
+
+3. 设置环境变量
+
+```bash
+[root@localhost java]# vi /etc/profile
+```
+
+在profile中添加如下内容:
+
+```bash
+#set java environment
+JAVA_HOME=/usr/java/jdk1.7.0_79
+JRE_HOME=/usr/java/jdk1.7.0_79/jre
+CLASS_PATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib
+PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
+export JAVA_HOME JRE_HOME CLASS_PATH PATH
+```
+
+让修改生效:
+
+```bash
+[root@localhost java]# source /etc/profile
+```
+
+4.验证JDK有效性
+
+```bash
+[root@localhost java]# java -version
+java version "1.7.0_79"
+Java(TM) SE Runtime Environment (build 1.7.0_79-b15)
+Java HotSpot(TM) 64-Bit Server VM (build 24.79-b02, mixed mode)
+```
 
 ```bash
 # linux 查看系统版本信息
