@@ -823,9 +823,89 @@ Context:	http, server, location
 ```
 
 
+### 补充-如何去清理指定的缓存
+
+* 利用rm -rf 缓存目录内容 清理全部缓存
+* 利用第三方的扩展模块 ngx_cache_purge 清理指向的缓存 需要手动的编译与安装；后期会讲
+
+### 如何让部分的页面不去缓存 proxy_no_cache
+
+```bash
+Syntax:	proxy_no_cache string ...;
+Default:	—
+Context:	http, server, location
+# Defines conditions under which the response will not be saved to a cache. If at least one value of the string parameters is not empty and is not equal to “0” then the response will not be saved:
+```
+
+
+ ```bash
+ Syntax:	proxy_cache_key string;
+ # $schema 协议 + servername + 请求参数
+ # 将三者作为一个单独的key 作为一个纬度进行缓存
+ Default: proxy_cache_key $scheme$proxy_host$request_uri;
+ Context:	http, server, location
+ 
+ ```
+
+ ### nginx作为缓存服务的配置场景实例
+
+```bash
+    upstream imooc {
+        server 116.62.103.228:8001;
+        server 116.62.103.228:8002;
+        server 116.62.103.228:8003;
+    }
+    proxy_cache_path /opt/app/cache levels=1:2 keys_zone=imooc_cache:10m max_size=10g inactive=60m use_temp_path=off;
+
+server {
+    listen       80;
+    server_name  localhost jeson.t.imooc.io;
+
+    access_log  /var/log/nginx/test_proxy.access.log  main;
+
+    #  $cookie_nocache 为自定义的变量 只要请求字符串的uri 匹配指定的规则，就设为1（非零 非空）
+    if ($request_uri ~ ^/(url3|login|register|password\/reset)) {
+        set $cookie_nocache 1;
+    }
+    #######
+    
+    location / {
+        proxy_cache imooc_cache;
+        proxy_pass http://imooc;
+
+        proxy_cache_valid 200 304 12h;
+        proxy_cache_valid any 10m;
+        proxy_cache_key $host$uri$is_args$args;
+        add_header  Nginx-Cache "$upstream_cache_status";  
+
+        # 按照官方的文档，只要其中有一个变量的值部位0 或非空， 本次从后台过来的响应 就不会去缓存；
+        proxy_no_cache $cookie_nocache $arg_nocache $arg_comment;
+        proxy_no_cache $proxy_pragma $hhtp_authorization;
+        ##
+        
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        include proxy_params;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
 
 
 
+```
+
+
+### nginx 大文件的分片请求
+
+```bash
+Syntax: slice size;
+Default: slice 0;
+Context: http,server,location;
+
+```
 
 
 
