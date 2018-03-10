@@ -49,6 +49,39 @@ flag : break 与 last之间的区别；
 
 ## linux系统软件的安装
 
+### linux 与 mac系统变量的设置 
+
+Mac下面的环境变量设置和Linux差不多，一般为这几个文件（左边的先加载）：
+
+/etc/profile /etc/paths ~/.bash_profile ~/.bash_login ~/.profile ~/.bashrc
+
+etc目录下面的是系统级的配置，~目录下的是用户配置，用户配置文件只会加载一个（.bashrc除外），不存在的可以自己新建；下面小编说说用户环境变量怎么设置，系统变量类似哦。
+
+* 输入：echo $PATH，按回车执行命令查看当前变量值，这里我们将修改PATH变量来测试。
+
+```bash
+# 查看现有的系统环境变量
+echo $PATH
+# /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:
+
+# 新建~/.bash_profile
+touch .bash_profile
+sudo vi .bash_profile
+
+
+# 与windows保持一致，新建变量，然后将变量追加到path变量中去
+~ NODE_GLOBAL_MODULE=~/Users/app/.npm_global/bin
+～ export PATH=$PATH:$NODE_GLOBAL_MODULE
+～
+～
+:wq!
+
+# 重新输入echo $PATH 路径是否已经追加到全局变量中
+echo $PATH
+# /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/apple/.npm-global/bin
+
+```
+
 ### 软件的安装目录
 
 * /usr ： 系统级的目录，可以理解为 c:/windows/
